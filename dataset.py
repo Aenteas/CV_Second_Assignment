@@ -1,18 +1,12 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
-import time
 import matplotlib.pyplot as plt
-import cv2
-from math import sqrt 
 import pandas as pd
 import numpy as np
 from PIL import Image
 from torch.utils import data
 import random as rnd
-import sys
 
 class fer_2013_dataset(data.Dataset):
     def __init__(self, path="./fer2013.csv", mode='train'):
@@ -24,7 +18,7 @@ class fer_2013_dataset(data.Dataset):
         	split = self.samples[(self.samples.Usage == 'Training')]
         elif mode == 'val':
         	split = self.samples[(self.samples.Usage == 'PublicTest')]
-        elif mode == 'train':
+        elif mode == 'test':
         	split = self.samples[(self.samples.Usage == 'PrivateTest')]
         else:
         	raise ValueError
@@ -32,14 +26,15 @@ class fer_2013_dataset(data.Dataset):
         self.x = split.pixels
         self.y = list(split.emotion)
 
-        # augment with random horizontal flip
+        # augment with random horizontal flip and hue, saturation and brigtness adjusments
         self.transform_list = transforms.Compose([
-                                                transforms.ToPILImage(),
+                                                transforms.ColorJitter(0.5, 0.5, 0.5, 0.25),
                                                 transforms.RandomHorizontalFlip(),
                                                 transforms.ToTensor(),
+                                                transforms.Normalize(mean=(0.5),std=(0.5)),
                                             ]) if mode == 'train' else transforms.Compose([
-                                                transforms.ToPILImage(),
                                                 transforms.ToTensor(),
+                                                transforms.Normalize(mean=(0.5),std=(0.5)),
                                             ])
 
     def __len__(self):
@@ -47,7 +42,8 @@ class fer_2013_dataset(data.Dataset):
 
     def __getitem__(self, index):
         t = self.transform_list
-        return t(np.float32(self.x[index].split()).reshape(1, 48, 48)), self.y[index]
+        # feed grayscale image as RGB to be able to use pretrained model
+        return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index]
 
     def cat_distribution(self):
         # show histogram of categories in the whole dataset

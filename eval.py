@@ -1,17 +1,7 @@
-import os
 import torch
-from torch.utils import data
-from torch import nn
-from torch.optim import lr_scheduler
-from dataset import fer2013_dataset
-import numpy as np
-import sys
 from tqdm import tqdm
-from PIL import Image
-from eval import validate
-import matplotlib.pyplot as plt
 
-def validate_loss(loader, model, device):
+def validate(loader, model, device):
     epoch_loss = 0
     criterion = nn.CrossEntropyLoss()
     model.eval()

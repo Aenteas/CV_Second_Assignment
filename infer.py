@@ -1,6 +1,5 @@
 import torch
 from torch.utils import data
-from dataset import fer2013_dataset
 from tqdm import tqdm
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -54,6 +53,6 @@ if __name__ == '__main__':
     model = Model(model_name)
     model.load_state_dict(checkpoint['model_state_dict'])
 
-    loader = data.DataLoader(fer_2013_dataset('test'), batch_size=1, shuffle=False, num_workers=1, drop_last=False)
+    loader = data.DataLoader(fer_2013_dataset(args.d, 'test'), batch_size=1, shuffle=False, num_workers=1, drop_last=False)
 
     infer(loader, model, args)
