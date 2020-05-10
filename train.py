@@ -3,7 +3,6 @@ import torch
 from torch.utils import data
 from torch import nn
 from torch.optim import lr_scheduler
-from dataset import fer2013_dataset
 import numpy as np
 import sys
 from tqdm import tqdm
@@ -12,8 +11,6 @@ from eval import validate
 from models import Model
 
 def train(loaders, args):
-    # show category distribution
-    loaders['train'].cat_distribution()
     # use checkpoint model if given
     if args.checkpoint is not None:
         checkpoint = torch.load(args.checkpoint)
@@ -37,15 +34,14 @@ def train(loaders, args):
 
     # loss and learning rate
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[epoch_iter//2], gamma=0.1)
+    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_num//2], gamma=0.1)
     best_loss = sys.maxsize
     early_stop = False
-    for epoch in range(epoch_iter):
+    for epoch in range(args.epoch_num):
         scheduler.step()
         epoch_loss = 0
         num_corrects = 0
-        epoch_time = time.time()
-        tbar = tqdm(loader['train'])
+        tbar = tqdm(loaders['train'])
         for i, (imgs, labels) in enumerate(tbar):
             model.train()
             imgs, labels = imgs.to(device), labels.to(device)
@@ -59,12 +55,12 @@ def train(loaders, args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_acc = num_corrects.double() / ((i + 1) * batch_size)
+            epoch_acc = num_corrects.double() / ((i + 1) * args.batch_size)
 
-            tbar.set_description('Epoch: [{}/{}], Epoch_loss: {:.5f}, Epoch_acc: {:.5f}'.format(epoch+1, epoch_iter, epoch_loss/(i + 1), epoch_acc))
-        if epoch % num_epoch_to_validate == 0:
+            tbar.set_description('Epoch: [{}/{}], Epoch_loss: {:.5f}, Epoch_acc: {:.5f}'.format(epoch+1, args.epoch_num, epoch_loss/(i + 1), epoch_acc))
+        if epoch % args.num_epoch_to_validate == 0:
             print("Validating model ...")
-            if epoch > num_epoch_to_validate:
+            if epoch > args.num_epoch_to_validate:
                 print('Best validation loss: {}'.format(best_loss))
             val_loss, val_acc = validate(loaders['val'], model, device)
             if val_loss < best_loss:
@@ -78,7 +74,7 @@ def train(loaders, args):
                 torch.save({'model_state_dict': state_dict, 'model_name': model_name}, path_to_checkpoint)
             else:
                 num_checks += 1
-                if num_checks >= patience:
+                if num_checks >= args.patience:
                     print("Early stopping ...")
                     early_stop = True
             print('Validation loss: {}\n Validation acc: {}'.format(val_loss, val_acc), 'Number of checks: {}'.format(num_checks))
