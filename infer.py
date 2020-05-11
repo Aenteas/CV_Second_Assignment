@@ -10,6 +10,7 @@ import os
 import random as rnd
 from models import Model
 from dataset import fer_2013_dataset
+from sklearn.metrics import ConfusionMatrixDisplay
 
 def infer(dataset, model, args):
     sample_idxs = rnd.sample(list(range(len(dataset))), args.num_save)
@@ -19,8 +20,8 @@ def infer(dataset, model, args):
     criterion = nn.CrossEntropyLoss()
     model.eval()
     num_corrects = 0
-    num_corrects_per_cat = [0 for _ in dataset.labels]
     num_cats = [0 for _ in dataset.labels]
+    confusion_matrix = np.zeros((7,7), dtype=np.uint)
     for l in dataset.y:
         num_cats[l] += 1
     with torch.no_grad():
@@ -29,9 +30,9 @@ def infer(dataset, model, args):
             outputs = model(imgs)
             _, preds = torch.max(outputs, 1)
 
-            correct = torch.sum(preds == labels.data)
-            num_corrects += correct
-            num_corrects_per_cat[preds.item()] += correct
+            num_corrects += torch.sum(preds == labels.data)
+
+            confusion_matrix[labels.item(), preds.item()] += 1
             loss = criterion(outputs, labels)
             
             epoch_loss += loss.item()
@@ -42,12 +43,10 @@ def infer(dataset, model, args):
     # overall test loss and accuracy
     test_loss, test_acc = epoch_loss / len(loader), num_corrects.double() / len(loader)
     print('Test loss: {}\n Test acc: {}'.format(test_loss, test_acc))
-    # per category test loss and accuracy
-    acc_per_cat = [float(num_correct)/num for num_correct, num in zip(num_corrects_per_cat, num_cats)]
-    plt.bar(range(len(dataset.labels)), acc_per_cat, color='rgbc',tick_label=dataset.labels)
-    for i,b in enumerate(acc_per_cat):
-        plt.text(i, b+0.05, '%.3f' % b, ha='center', va= 'bottom',fontsize=10)  
+    disp = ConfusionMatrixDisplay(confusion_matrix, np.array(dataset.labels))
+    disp.plot(cmap=plt.cm.Blues, values_format='.0f')
     plt.show()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
