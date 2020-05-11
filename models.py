@@ -17,6 +17,8 @@ class Model(nn.Module):
             self.model = self.vgg4_2_ilrb_2()
         elif name == 'vgg4_4_ilrb_2':
             self.model = self.vgg4_4_ilrb_2()
+        elif name == 'vgg4_2_2_conv5':
+            self.model = self.vgg4_2_2_conv5()
         else:
             raise NotImplementedError
 
@@ -60,8 +62,17 @@ class Model(nn.Module):
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(1024 * 3 * 3)
 
+    def vgg4_2_2_conv5(self):
+        layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
+                                         self.convBNRelu(256,512,5),
+                                         nn.MaxPool2d(kernel_size=2, stride=2),
+                                         self.convBNRelu(512,1024,3)]
+
+        self.features = nn.Sequential(*layers)
+        self.classifier = self.create_classifier(1024 * 4 * 4)
+
     def vgg4_2_ilrb_2(self):
-        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,512,512),
+        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,1024,512),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
                                          inverted_linear_residual_block(512,1024,512), 
                                          nn.AdaptiveAvgPool2d((3, 3))]

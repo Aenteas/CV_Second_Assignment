@@ -9,7 +9,7 @@ from torch.utils import data
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', type=str, help='Path to dataset', default='./data/fer2013.csv')
-    parser.add_argument('-m', type=str, help='model_name', choices=['vgg4_0_2', 'vgg4_2_2', 'vgg4_2_ilrb_2', 'vgg4_4_ilrb_2'], default=None)
+    parser.add_argument('-m', type=str, help='model_name', choices=['vgg4_0_2', 'vgg4_2_2', 'vgg4_2_ilrb_2', 'vgg4_4_ilrb_2', 'vgg4_2_2_conv5'], default=None)
     parser.add_argument('--num_epoch_to_validate', type=int, default=1)
     parser.add_argument('--batch_size', type=int, help='batch size', default=16)
     parser.add_argument('--lr', type=float, help='learning rate', default=0.01)
