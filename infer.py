@@ -43,9 +43,6 @@ def infer(dataset, model, args):
     test_loss, test_acc = epoch_loss / len(loader), num_corrects.double() / len(loader)
     print('Test loss: {}\n Test acc: {}'.format(test_loss, test_acc))
     # per category test loss and accuracy
-    print('NC', num_corrects)
-    print('NPC', num_corrects_per_cat)
-    print('N', num_cats)
     acc_per_cat = [float(num_correct)/num for num_correct, num in zip(num_corrects_per_cat, num_cats)]
     plt.bar(range(len(dataset.labels)), acc_per_cat, color='rgbc',tick_label=dataset.labels)
     for i,b in enumerate(acc_per_cat):
