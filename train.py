@@ -12,7 +12,7 @@ from models import Model
 
 def train(loaders, args):
     # use checkpoint model if given
-    if args.checkpoint is not None:
+    if args.m is None:
         checkpoint = torch.load(args.checkpoint)
         model_name = checkpoint['name']
         model = Model(model_name)
@@ -65,7 +65,7 @@ def train(loaders, args):
             val_loss, val_acc = validate(loaders['val'], model, device)
             if val_loss < best_loss:
                 best_loss = val_loss
-                path_to_checkpoint = os.path.abspath(os.path.join(pths_path, f'model_{name}_epoch_{epoch}.pth'))
+                path_to_checkpoint = os.path.abspath(os.path.join(args.checkpoint, f'model_{model_name}_epoch_{epoch}.pth'))
                 if path_to_best_model:
                     os.remove(path_to_best_model)
                 path_to_best_model = path_to_checkpoint

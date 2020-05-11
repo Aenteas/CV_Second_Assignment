@@ -1,5 +1,6 @@
 import torch
 from tqdm import tqdm
+from torch import nn
 
 def validate(loader, model, device):
     epoch_loss = 0

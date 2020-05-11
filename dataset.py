@@ -13,7 +13,6 @@ class fer_2013_dataset(data.Dataset):
         super(fer_2013_dataset, self).__init__()
         self.samples = pd.read_csv(path)
         self.labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neural']
-
         if mode == 'train':
         	split = self.samples[(self.samples.Usage == 'Training')]
         elif mode == 'val':
@@ -22,8 +21,9 @@ class fer_2013_dataset(data.Dataset):
         	split = self.samples[(self.samples.Usage == 'PrivateTest')]
         else:
         	raise ValueError
+        self.mode = mode
 
-        self.x = split.pixels
+        self.x = list(split.pixels)
         self.y = list(split.emotion)
 
         # augment with random horizontal flip and hue, saturation and brigtness adjusments
@@ -32,7 +32,7 @@ class fer_2013_dataset(data.Dataset):
                                                 transforms.RandomHorizontalFlip(),
                                                 transforms.ToTensor(),
                                                 transforms.Normalize(mean=(0.5),std=(0.5)),
-                                            ]) if mode == 'train' else transforms.Compose([
+                                            ]) if mode != 'test' else transforms.Compose([
                                                 transforms.ToTensor(),
                                                 transforms.Normalize(mean=(0.5),std=(0.5)),
                                             ])
@@ -43,7 +43,11 @@ class fer_2013_dataset(data.Dataset):
     def __getitem__(self, index):
         t = self.transform_list
         # feed grayscale image as RGB to be able to use pretrained model
-        return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index]
+        if self.mode == 'test':
+            gray = np.uint8(self.x[index].split()).reshape(48, 48)
+            return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index], gray
+        else:
+            return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index]
 
     def cat_distribution(self):
         # show histogram of categories in the whole dataset
