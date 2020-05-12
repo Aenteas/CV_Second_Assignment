@@ -29,10 +29,6 @@ class Model(nn.Module):
         x = self.classifier(x)
         return x
 
-    def convBNRelu(self, inp, out, kernel_size, groups=1, padding=1):
-        # when groups = inp we have depthwise convolution
-        return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=padding, bias=False, groups=groups), nn.BatchNorm2d(out), nn.ReLU(True)]
-
     def create_classifier(self, inp):
         return nn.Sequential(nn.Linear(inp, 512), 
                              nn.ReLU(True),
@@ -53,17 +49,14 @@ class Model(nn.Module):
 
     def vgg4_2_2(self):
         # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
-        layers = self.extract_vgg11() + [self.convBNRelu(256,256,3),
-                                         nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(256,512,3)]
+        layers = self.extract_vgg11() + convBNRelu(256,256,3) + [nn.MaxPool2d(kernel_size=2, stride=2)] + convBNRelu(256,512,3)
 
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(512 * 6 * 6)
 
     def vgg4_2_2_conv5(self):
         # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 5) and classifier with 2 layers
-        layers = self.extract_vgg11() + [self.convBNRelu(256,256,5, padding=1),
-                                         self.convBNRelu(256,512,5)]
+        layers = self.extract_vgg11() + convBNRelu(256,256,5, padding=1) + convBNRelu(256,512,5, padding=0)
 
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(512 * 6 * 6)
@@ -72,9 +65,9 @@ class Model(nn.Module):
         # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
         # Feature map is spatially squeezed to 3x3 shape by max poolings
         layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(256,256,3),
+                                         *convBNRelu(256,256,3),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(256,512,3)]
+                                         *convBNRelu(256,512,3)]
 
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(512 * 3 * 3)
@@ -91,8 +84,16 @@ class inverted_linear_residual_block(nn.Module):
     # implementation of basic building block of MobilnetV2
     def __init__(self, inp, exp, out):
         super(inverted_linear_residual_block, self).__init__()
-        layers = [self.convBNRelu(inp,exp,1), self.convBNRelu(exp,exp,3,exp), nn.Conv2d(exp,out,1, bias=False), nn.BatchNorm2d(out)]
+        layers = convBNRelu(inp,exp,1, padding=0) + convBNRelu(exp,exp,3,exp) + [nn.Conv2d(exp,out,1, padding = 0, bias=False), nn.BatchNorm2d(out)]
         self.layers = nn.Sequential(*layers)
+        self.skip_connect = inp == out
     def forward(self, x):
         # skip connection
-        return x + self.layers(x)
+        if self.skip_connect:
+            return x + self.layers(x)
+        else:
+            return self.layers(x)
+
+def convBNRelu(inp, out, kernel_size, groups=1, padding=1):
+    # when groups = inp we have depthwise convolution
+    return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=padding, bias=False, groups=groups), nn.BatchNorm2d(out), nn.ReLU(True)]
