@@ -29,9 +29,9 @@ class Model(nn.Module):
         x = self.classifier(x)
         return x
 
-    def convBNRelu(self, inp, out, kernel_size, groups=1):
+    def convBNRelu(self, inp, out, kernel_size, groups=1, padding=1):
         # when groups = inp we have depthwise convolution
-        return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=1, bias=False, groups=groups), nn.BatchNorm2d(out), nn.ReLU(True)]
+        return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=padding, bias=False, groups=groups), nn.BatchNorm2d(out), nn.ReLU(True)]
 
     def create_classifier(self, inp):
         return nn.Sequential(nn.Linear(inp, 512), 
@@ -47,47 +47,45 @@ class Model(nn.Module):
 
     def vgg4_0_2(self):
         # First 4 convolutional layers of VGG11, average poling and classifier with 2 layers 
-        layers = self.extract_vgg11() + [nn.AdaptiveAvgPool2d((7, 7))]
+        layers = self.extract_vgg11() + [nn.AdaptiveAvgPool2d((6, 6))]
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(256 * 7 * 7)
+        self.classifier = self.create_classifier(256 * 6 * 6)
 
     def vgg4_2_2(self):
-        # First 4 convolutional layers of VGG11, 2 convolutional layers and classifier with 2 layers
-        # Feature map is spatially squeezed to 3x3 shape using max poolings
-        layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(256,512,3),
+        # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
+        layers = self.extract_vgg11() + [self.convBNRelu(256,256,3),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(512,1024,3)]
+                                         self.convBNRelu(256,512,3)]
 
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(1024 * 3 * 3)
+        self.classifier = self.create_classifier(512 * 6 * 6)
 
     def vgg4_2_2_conv5(self):
-        layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(256,512,5),
-                                         nn.MaxPool2d(kernel_size=2, stride=2),
-                                         self.convBNRelu(512,1024,3)]
+        # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 5) and classifier with 2 layers
+        layers = self.extract_vgg11() + [self.convBNRelu(256,256,5, padding=1),
+                                         self.convBNRelu(256,512,5)]
 
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(1024 * 4 * 4)
+        self.classifier = self.create_classifier(512 * 6 * 6)
+
+    def vgg4_2_2_2maxpool(self):
+        # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
+        # Feature map is spatially squeezed to 3x3 shape by max poolings
+        layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
+                                         self.convBNRelu(256,256,3),
+                                         nn.MaxPool2d(kernel_size=2, stride=2),
+                                         self.convBNRelu(256,512,3)]
+
+        self.features = nn.Sequential(*layers)
+        self.classifier = self.create_classifier(512 * 3 * 3)
 
     def vgg4_2_ilrb_2(self):
-        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,1024,512),
+        # First 4 convolutional layers of VGG11, 2 inverted residual blocks separated by average pooling and classifier with 2 layers
+        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,1024,256),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
-                                         inverted_linear_residual_block(512,1024,512), 
-                                         nn.AdaptiveAvgPool2d((3, 3))]
+                                         inverted_linear_residual_block(256,1024,512)]
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(512 * 3 * 3)
-
-    def vgg4_4_ilrb_2(self):
-        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,512,256),
-                                         inverted_linear_residual_block(256,1024,512),
-                                         nn.MaxPool2d(kernel_size=2, stride=2),
-                                         inverted_linear_residual_block(512,1024,256),
-                                         inverted_linear_residual_block(512,1024,512),
-                                         nn.AdaptiveAvgPool2d((3, 3))]
-        self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(512 * 3 * 3)
+        self.classifier = self.create_classifier(512 * 6 * 6)
 
 class inverted_linear_residual_block(nn.Module):
     def __init__(self, inp, exp, out):
