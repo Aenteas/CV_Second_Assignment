@@ -13,6 +13,7 @@ class fer_2013_dataset(data.Dataset):
         super(fer_2013_dataset, self).__init__()
         self.samples = pd.read_csv(path)
         self.labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neural']
+        # extract samples per split
         if mode == 'train':
         	split = self.samples[(self.samples.Usage == 'Training')]
         elif mode == 'val':
@@ -42,11 +43,11 @@ class fer_2013_dataset(data.Dataset):
 
     def __getitem__(self, index):
         t = self.transform_list
-        # feed grayscale image as RGB to be able to use pretrained model
+        # we return the grayscale image for inference to be able to save results
         if self.mode == 'test':
             gray = np.uint8(self.x[index].split()).reshape(48, 48)
             return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index], gray
-        else:
+        else: # feed grayscale image as RGB to be able to use pretrained model
             return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index]
 
     def cat_distribution(self):
@@ -59,13 +60,14 @@ class fer_2013_dataset(data.Dataset):
         plt.show()
 
     def show_samples(self, y, num_samples=28):
-        # show random num_samples samples from dataset
+        # show random [num_samples] samples from dataset
         # random samples
         sample_idxs = rnd.sample(list(range(len(y))), num_samples)
         fig = plt.figure(figsize = (10,8))
         for i, idx in enumerate(sample_idxs):
             img = Image.fromarray(np.uint8(self.x[idx].split()).reshape(48, 48), mode='L')
             label = self.labels[y[idx]]
+            # 4 by 7 image matrix
             f = fig.add_subplot(4,7,i+1)
             f.imshow(img,cmap='gray')
             plt.title(label)

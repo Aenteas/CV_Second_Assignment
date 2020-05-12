@@ -3,6 +3,7 @@ from tqdm import tqdm
 from torch import nn
 
 def validate(loader, model, device):
+    # compute the accuracy and loss on the validation set
     epoch_loss = 0
     criterion = nn.CrossEntropyLoss()
     model.eval()

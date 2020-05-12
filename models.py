@@ -6,17 +6,17 @@ class Model(nn.Module):
 
     def __init__(self, name):
         super().__init__()
-
+        # 7 emotions
         self.num_classes = 7
-
+        # init model
         if name == 'vgg4_0_2':
             self.model = self.vgg4_0_2()
         elif name == 'vgg4_2_2':
             self.model = self.vgg4_2_2()
         elif name == 'vgg4_2_ilrb_2':
             self.model = self.vgg4_2_ilrb_2()
-        elif name == 'vgg4_4_ilrb_2':
-            self.model = self.vgg4_4_ilrb_2()
+        elif name == 'vgg4_2_2_2maxpool':
+            self.model = self.vgg4_2_2_2maxpool()
         elif name == 'vgg4_2_2_conv5':
             self.model = self.vgg4_2_2_conv5()
         else:
@@ -88,6 +88,7 @@ class Model(nn.Module):
         self.classifier = self.create_classifier(512 * 6 * 6)
 
 class inverted_linear_residual_block(nn.Module):
+    # implementation of basic building block of MobilnetV2
     def __init__(self, inp, exp, out):
         super(inverted_linear_residual_block, self).__init__()
         layers = [self.convBNRelu(inp,exp,1), self.convBNRelu(exp,exp,3,exp), nn.Conv2d(exp,out,1, bias=False), nn.BatchNorm2d(out)]

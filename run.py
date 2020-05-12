@@ -9,7 +9,7 @@ from torch.utils import data
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', type=str, help='Path to dataset', default='./data/fer2013.csv')
-    parser.add_argument('-m', type=str, help='model_name', choices=['vgg4_0_2', 'vgg4_2_2', 'vgg4_2_ilrb_2', 'vgg4_4_ilrb_2', 'vgg4_2_2_conv5'], default=None)
+    parser.add_argument('-m', type=str, help='model_name', choices=['vgg4_0_2', 'vgg4_2_2', 'vgg4_2_ilrb_2', 'vgg4_2_2_2maxpool', 'vgg4_2_2_conv5'], default=None)
     parser.add_argument('--num_epoch_to_validate', type=int, default=1)
     parser.add_argument('--batch_size', type=int, help='batch size', default=16)
     parser.add_argument('--lr', type=float, help='learning rate', default=0.01)
@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', type=str, help='path_to_results', default='./outputs')
 
     args = parser.parse_args()
+    # create folders if they do not exist
     if not os.path.exists(os.path.abspath(args.o)):
         os.makedirs(args.o)
     if not os.path.exists(os.path.abspath(args.checkpoint)):
@@ -30,10 +31,11 @@ if __name__ == '__main__':
     datasets = {split: fer_2013_dataset(args.d, split) for split in ['train', 'val', 'test']}
     # show category distribution
     datasets['train'].cat_distribution()
-    # for validation we use batch size 1
+    # for validation and test we use batch size 1
     loaders = {'train': data.DataLoader(datasets['train'], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True),
                'val': data.DataLoader(datasets['val'], batch_size=1, shuffle=False, num_workers=1, drop_last=False),
                'test': data.DataLoader(datasets['test'], batch_size=1, shuffle=False, num_workers=1, drop_last=False),}
 
     model = train(loaders, args)
+    # run inference on trained model
     infer(datasets['test'], model, args)

@@ -17,11 +17,11 @@ def train(loaders, args):
         model_name = checkpoint['name']
         model = Model(model_name)
         model.load_state_dict(checkpoint['model_state_dict'])
-    else:
+    else: # else init model
         model_name = args.m
         model = Model(model_name)
 
-    # load checkpoint to model
+    # loss and device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     criterion = nn.CrossEntropyLoss()
     
@@ -32,16 +32,18 @@ def train(loaders, args):
     model.to(device)
     path_to_best_model = ""
 
-    # loss and learning rate
+    # learning rate
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_num//2], gamma=0.1)
     best_loss = sys.maxsize
     early_stop = False
+    # epochs
     for epoch in range(args.epoch_num):
         scheduler.step()
         epoch_loss = 0
         num_corrects = 0
         tbar = tqdm(loaders['train'])
+        # iterate through images
         for i, (imgs, labels) in enumerate(tbar):
             model.train()
             imgs, labels = imgs.to(device), labels.to(device)
@@ -55,14 +57,17 @@ def train(loaders, args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            # current training accuracy of epoch
             epoch_acc = num_corrects.double() / ((i + 1) * args.batch_size)
 
             tbar.set_description('Epoch: [{}/{}], Epoch_loss: {:.5f}, Epoch_acc: {:.5f}'.format(epoch+1, args.epoch_num, epoch_loss/(i + 1), epoch_acc))
+        # early stopping
         if epoch % args.num_epoch_to_validate == 0:
             print("Validating model ...")
             if epoch > args.num_epoch_to_validate:
                 print('Best validation loss: {}'.format(best_loss))
             val_loss, val_acc = validate(loaders['val'], model, device)
+            # if we have the best model so far
             if val_loss < best_loss:
                 best_loss = val_loss
                 path_to_checkpoint = os.path.abspath(os.path.join(args.checkpoint, f'model_{model_name}_epoch_{epoch}.pth'))
@@ -72,7 +77,7 @@ def train(loaders, args):
                 num_checks = 0
                 state_dict = model.module.state_dict() if data_parallel else model.state_dict()
                 torch.save({'model_state_dict': state_dict, 'model_name': model_name}, path_to_checkpoint)
-            else:
+            else: # else we increase patience, if patience reaches the limit we stop
                 num_checks += 1
                 if num_checks >= args.patience:
                     print("Early stopping ...")
