@@ -40,7 +40,7 @@ Early stopping is used for validation (--patience and --num_epoch_to_validate ar
 Batch size, learning rate and other parameters can be specified for training (see run.py)
 Trained models are saved under checkpoint folder
 Training can be run on checkpoint models using the --checkpoint argument
-After training, inference is run on the test set, showing the confusion matrix and saving results under outputs folder
+After training, inference is run on the test set, computing test loss and accuracy, showing the confusion matrix and saving predictions under outputs folder
 
 ### Run inference
 
