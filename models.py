@@ -9,16 +9,16 @@ class Model(nn.Module):
         # 7 emotions
         self.num_classes = 7
         # init model
-        if name == 'vgg4_0_2':
-            self.model = self.vgg4_0_2()
-        elif name == 'vgg4_2_2':
-            self.model = self.vgg4_2_2()
-        elif name == 'vgg4_2_ilrb_2':
-            self.model = self.vgg4_2_ilrb_2()
-        elif name == 'vgg4_2_2_2maxpool':
-            self.model = self.vgg4_2_2_2maxpool()
-        elif name == 'vgg4_2_2_conv5':
-            self.model = self.vgg4_2_2_conv5()
+        if name == 'vgg2_0_2':
+            self.model = self.vgg2_0_2()
+        elif name == 'vgg2_2_2':
+            self.model = self.vgg2_2_2()
+        elif name == 'vgg2_4_ilrb_2':
+            self.model = self.vgg2_4_ilrb_2()
+        elif name == 'vgg2_4_2_conv3':
+            self.model = self.vgg2_4_2_conv3()
+        elif name == 'vgg2_2_2_conv5':
+            self.model = self.vgg2_4_2_conv5()
         else:
             raise NotImplementedError
 
@@ -31,7 +31,7 @@ class Model(nn.Module):
 
     def create_classifier(self, inp):
         return nn.Sequential(nn.Linear(inp, 512), 
-                             nn.ReLU(True),
+                             nn.PReLU(),
                              nn.Dropout(), 
                              nn.Linear(512, 7))
 
@@ -39,44 +39,53 @@ class Model(nn.Module):
         vgg11 = torch.hub.load('pytorch/vision:v0.6.0', 'vgg11_bn', pretrained=True)
         children = list(vgg11.children())
         # first 4 convolutional layers
-        return list(children[0])[:14]
+        return list(children[0])[:7]
 
-    def vgg4_0_2(self):
+    def vgg2_0_2(self):
         # First 4 convolutional layers of VGG11, average poling and classifier with 2 layers 
         layers = self.extract_vgg11() + [nn.AdaptiveAvgPool2d((6, 6))]
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(256 * 6 * 6)
+        self.classifier = self.create_classifier(128 * 6 * 6)
 
-    def vgg4_2_2(self):
+    def vgg2_2_2(self):
         # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
-        layers = self.extract_vgg11() + convBNRelu(256,256,3) + [nn.MaxPool2d(kernel_size=2, stride=2)] + convBNRelu(256,512,3)
+        layers = self.extract_vgg11() + convBNRelu(128,256,3) + [nn.MaxPool2d(kernel_size=2, stride=2)] + convBNRelu(256,512,3) + [nn.AvgPool2d(kernel_size=2, stride=2)]
 
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(512 * 6 * 6)
 
-    def vgg4_2_2_conv5(self):
+    def vgg2_4_2_conv5(self):
         # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 5) and classifier with 2 layers
-        layers = self.extract_vgg11() + convBNRelu(256,256,5, padding=1) + convBNRelu(256,512,5, padding=0)
-
-        self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(512 * 6 * 6)
-
-    def vgg4_2_2_2maxpool(self):
-        # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
-        # Feature map is spatially squeezed to 3x3 shape by max poolings
-        layers = self.extract_vgg11() + [nn.MaxPool2d(kernel_size=2, stride=2),
-                                         *convBNRelu(256,256,3),
+        layers = self.extract_vgg11() + [*convBNRelu(128,128,5, padding=0),
+                                         *convBNRelu(128,128,5, padding=0),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
+                                         *convBNRelu(128,256,5),
                                          *convBNRelu(256,512,3)]
 
         self.features = nn.Sequential(*layers)
-        self.classifier = self.create_classifier(512 * 3 * 3)
+        self.classifier = self.create_classifier(512 * 6 * 6)
 
-    def vgg4_2_ilrb_2(self):
-        # First 4 convolutional layers of VGG11, 2 inverted residual blocks separated by average pooling and classifier with 2 layers
-        layers = self.extract_vgg11() + [inverted_linear_residual_block(256,1024,256),
+    def vgg2_4_2_conv3(self):
+        # First 4 convolutional layers of VGG11, 2 convolutional layers (kernel size 3) and classifier with 2 layers
+        # Feature map is spatially squeezed to 3x3 shape by max poolings
+        layers = self.extract_vgg11() + [*convBNRelu(128,128,3),
+                                         *convBNRelu(128,128,3),
                                          nn.MaxPool2d(kernel_size=2, stride=2),
-                                         inverted_linear_residual_block(256,1024,512)]
+                                         *convBNRelu(128,256,3),
+                                         *convBNRelu(256,512,3),
+                                         nn.AvgPool2d(kernel_size=2, stride=2),]
+
+        self.features = nn.Sequential(*layers)
+        self.classifier = self.create_classifier(512 * 6 * 6)
+
+    def vgg2_4_ilrb_2(self):
+        # First 4 convolutional layers of VGG11, 2 inverted residual blocks separated by average pooling and classifier with 2 layers
+        layers = self.extract_vgg11() + [inverted_linear_residual_block(128,1024,128),
+                                         inverted_linear_residual_block(128,1024,128),
+                                         nn.MaxPool2d(kernel_size=2, stride=2),
+                                         inverted_linear_residual_block(128,1280,256),
+                                         inverted_linear_residual_block(256,1280,512),
+                                         nn.AvgPool2d(kernel_size=2, stride=2),]
         self.features = nn.Sequential(*layers)
         self.classifier = self.create_classifier(512 * 6 * 6)
 
@@ -96,4 +105,4 @@ class inverted_linear_residual_block(nn.Module):
 
 def convBNRelu(inp, out, kernel_size, groups=1, padding=1):
     # when groups = inp we have depthwise convolution
-    return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=padding, bias=False, groups=groups), nn.BatchNorm2d(out), nn.ReLU(True)]
+    return [nn.Conv2d(inp, out, kernel_size=kernel_size, padding=padding, bias=False, groups=groups), nn.BatchNorm2d(out), nn.PReLU()]

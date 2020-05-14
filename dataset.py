@@ -9,19 +9,19 @@ from torch.utils import data
 import random as rnd
 
 class fer_2013_dataset(data.Dataset):
-    def __init__(self, path="./fer2013.csv", mode='train'):
+    def __init__(self, path="fer2013.csv", mode='train'):
         super(fer_2013_dataset, self).__init__()
         self.samples = pd.read_csv(path)
         self.labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neural']
         # extract samples per split
         if mode == 'train':
-        	split = self.samples[(self.samples.Usage == 'Training')]
+            split = self.samples[(self.samples.Usage == 'Training')]
         elif mode == 'val':
-        	split = self.samples[(self.samples.Usage == 'PublicTest')]
+            split = self.samples[(self.samples.Usage == 'PublicTest')]
         elif mode == 'test':
-        	split = self.samples[(self.samples.Usage == 'PrivateTest')]
+            split = self.samples[(self.samples.Usage == 'PrivateTest')]
         else:
-        	raise ValueError
+            raise ValueError
         self.mode = mode
 
         self.x = list(split.pixels)
@@ -29,14 +29,15 @@ class fer_2013_dataset(data.Dataset):
 
         # augment with random horizontal flip and hue, saturation and brigtness adjusments
         self.transform_list = transforms.Compose([
-                                                transforms.ColorJitter(0.5, 0.5, 0.5, 0.25),
-                                                transforms.RandomHorizontalFlip(),
-                                                transforms.ToTensor(),
-                                                transforms.Normalize(mean=(0.5),std=(0.5)),
-                                            ]) if mode != 'test' else transforms.Compose([
-                                                transforms.ToTensor(),
-                                                transforms.Normalize(mean=(0.5),std=(0.5)),
-                                            ])
+                                                    transforms.RandomHorizontalFlip(),
+                                                    transforms.RandomRotation(5),
+                                                    transforms.ColorJitter(),
+                                                    transforms.ToTensor(),
+                                                    transforms.Normalize(mean=(0.5,0.5,0.5),std=(0.5,0.5,0.5)),
+                                                ]) if self.mode != 'test' else transforms.Compose([
+                                                    transforms.ToTensor(),
+                                                    transforms.Normalize(mean=(0.5,0.5,0.5),std=(0.5,0.5,0.5)),
+                                                ])
 
     def __len__(self):
         return len(self.y)
@@ -46,9 +47,9 @@ class fer_2013_dataset(data.Dataset):
         # we return the grayscale image for inference to be able to save results
         if self.mode == 'test':
             gray = np.uint8(self.x[index].split()).reshape(48, 48)
-            return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index], gray
-        else: # feed grayscale image as RGB to be able to use pretrained model
-            return t(Image.fromarray(np.stack([np.float32(self.x[index].split()).reshape(48, 48)] * 3, axis=2), 'RGB')), self.y[index]
+            return t(Image.fromarray(np.uint8(self.x[index].split()).reshape(48, 48), mode='L').convert('RGB')), self.y[index], gray
+        else: # feed  image as RGB to be able to use pretrained model
+            return t(Image.fromarray(np.uint8(self.x[index].split()).reshape(48, 48), mode='L').convert('RGB')), self.y[index]
 
     def cat_distribution(self):
         # show histogram of categories in the whole dataset
@@ -58,6 +59,7 @@ class fer_2013_dataset(data.Dataset):
         for i,b in enumerate(labels_num):
             plt.text(i, b+0.05, '%.0f' % b, ha='center', va= 'bottom',fontsize=10)  
         plt.show()
+        return labels_num
 
     def show_samples(self, y, num_samples=28):
         # show random [num_samples] samples from dataset
