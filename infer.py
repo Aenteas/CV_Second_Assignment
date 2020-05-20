@@ -63,7 +63,7 @@ if __name__ == '__main__':
         os.makedirs(args.o)
 
     # load checkpoint model
-    checkpoint = torch.load(args.checkpoint)
+    checkpoint = torch.load(args.checkpoint, map_location='cpu')
     model_name = checkpoint['model_name']
     model = Model(model_name)
     model.load_state_dict(checkpoint['model_state_dict'])
