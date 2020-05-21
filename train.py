@@ -23,11 +23,11 @@ def train(loaders, dist, args):
 
     # loss and device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dist = torch.FloatTensor(dist).to(device)
+    dist = torch.FloatTensor(dist).to(device) # no epsilon needs to be added, each category has at least one sample
     if args.wl:
         criterion = nn.CrossEntropyLoss()
     else:
-        criterion = nn.CrossEntropyLoss(weight=dist)
+        criterion = nn.CrossEntropyLoss(weight=1 / dist)
     
     data_parallel = False
     if torch.cuda.device_count() > 1:

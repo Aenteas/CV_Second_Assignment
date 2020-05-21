@@ -17,7 +17,7 @@ class Model(nn.Module):
             self.model = self.vgg2_4_ilrb_2()
         elif name == 'vgg2_4_2_conv3':
             self.model = self.vgg2_4_2_conv3()
-        elif name == 'vgg2_2_2_conv5':
+        elif name == 'vgg2_4_2_conv5':
             self.model = self.vgg2_4_2_conv5()
         else:
             raise NotImplementedError
