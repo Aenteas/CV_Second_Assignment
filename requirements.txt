@@ -1,4 +1,4 @@
-certifi==2019.11.28
+certifi==2022.12.7
 cycler==0.10.0
 diffimg==0.2.3
 future==0.18.2
